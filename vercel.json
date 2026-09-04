@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "public": true,
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "functions": {
+    "api/send-invoice-email.js": { "memory": 128, "maxDuration": 10 },
+    "api/customers.js": { "memory": 128, "maxDuration": 10 },
+    "api/invoices.js": { "memory": 128, "maxDuration": 10 },
+    "api/invoices/[id].js": { "memory": 128, "maxDuration": 10 },
+    "api/payments.js": { "memory": 128, "maxDuration": 10 }
+  }
+}

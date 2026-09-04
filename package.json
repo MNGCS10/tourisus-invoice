@@ -1,0 +1,12 @@
+{
+  "name": "tourisus-invoice",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Touris Us Invoice Dashboard — static frontend + Vercel serverless email relay for Resend",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}

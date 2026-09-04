@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Touris Us — Invoice System</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1B6AC9;--blue-dark:#1255A3;--blue-light:#E8F1FB;
+  --green:#1B7A34;--green-light:#EDF7EE;
+  --orange:#E65C00;--red:#C0392B;
+  --gray-50:#F8FAFC;--gray-100:#F1F5F9;--gray-200:#E2E8F0;
+  --gray-400:#94A3B8;--gray-600:#475569;--gray-800:#1E293B;
+  --border:#E2E8F0;--radius:8px;
+}
+body{font-family:'Sarabun',system-ui,sans-serif;background:#EEF2F7;color:var(--gray-800);font-size:14px}
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+/* NAV */
+.nav{background:var(--blue);color:#fff;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(27,106,201,.4)}
+.nav-brand{font-size:15px;font-weight:700;letter-spacing:.3px}
+.nav-brand small{opacity:.7;font-weight:400;margin-left:8px;font-size:12px}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{padding:6px 14px;border-radius:6px;border:none;background:none;color:rgba(255,255,255,.75);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit}
+.nav-tab:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-tab.active{background:rgba(255,255,255,.22);color:#fff}
+
+/* LAYOUT */
+.app{display:flex;min-height:calc(100vh - 52px)}
+.main{flex:1;padding:20px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+
+/* CARDS */
+.card{background:#fff;border:0.5px solid var(--border);border-radius:12px;margin-bottom:16px;overflow:hidden}
+.card-head{padding:12px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:14px;font-weight:600;color:var(--gray-800)}
+.card-body{padding:16px}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat{background:#fff;border:0.5px solid var(--border);border-radius:12px;padding:16px}
+.stat-label{font-size:12px;color:var(--gray-400);margin-bottom:6px}
+.stat-val{font-size:24px;font-weight:700}
+.stat-val.blue{color:var(--blue)}.stat-val.green{color:var(--green)}
+.stat-val.orange{color:var(--orange)}.stat-val.red{color:var(--red)}
+
+/* TABLES */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;color:var(--gray-400);font-weight:600;text-align:left;padding:8px 12px;border-bottom:0.5px solid var(--border);text-transform:uppercase;letter-spacing:.5px}
+.tbl td{padding:10px 12px;border-bottom:0.5px solid var(--border);font-size:13px;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--gray-50)}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-draft{background:#FFF8E1;color:#F57F17}
+.badge-pending{background:#E3F2FD;color:#1565C0}
+.badge-paid{background:#E8F5E9;color:#1B5E20}
+.badge-overdue{background:#FFEBEE;color:#B71C1C}
+.badge-cancelled{background:var(--gray-100);color:var(--gray-600)}
+
+/* BUTTONS */
+.btn{padding:7px 16px;border-radius:6px;border:0.5px solid var(--border);background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:var(--gray-800);transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:inherit}
+.btn:hover{background:var(--gray-100)}
+.btn-primary{background:var(--blue);color:#fff;border-color:transparent}
+.btn-primary:hover{background:var(--blue-dark)}
+.btn-success{background:var(--green);color:#fff;border-color:transparent}
+.btn-danger{background:var(--red);color:#fff;border-color:transparent}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-xs{padding:2px 8px;font-size:11px}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-grid-3{grid-template-columns:1fr 1fr 1fr}
+.form-full{grid-column:1/-1}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;color:var(--gray-800);background:#fff;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue)}
+.field textarea{min-height:60px;resize:vertical}
+.section-divider{font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.6px;margin:20px 0 12px;padding-top:16px;border-top:0.5px solid var(--border)}
+
+/* SERVICE CHECKBOXES */
+.svc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.svc-item{border:0.5px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s;user-select:none}
+.svc-item:hover{border-color:var(--blue);background:var(--blue-light)}
+.svc-item.active{border-color:var(--blue);background:var(--blue-light)}
+.svc-icon{font-size:18px;line-height:1}
+.svc-text{font-size:13px;font-weight:600}
+.svc-sub{font-size:11px;color:var(--gray-400)}
+
+/* LINE ITEMS */
+.line-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+.line-table th{font-size:11px;color:var(--gray-400);font-weight:600;padding:6px 8px;border-bottom:0.5px solid var(--border);text-align:left}
+.line-table td{padding:4px 4px;border-bottom:0.5px solid var(--border)}
+.line-table tr:last-child td{border-bottom:none}
+.line-table input,.line-table select{width:100%;padding:6px 8px;border:0.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit}
+.line-table input:focus,.line-table select:focus{outline:none;border-color:var(--blue)}
+
+/* TOTALS */
+.totals-box{background:var(--gray-50);border:0.5px solid var(--border);border-radius:8px;padding:14px;min-width:240px}
+.total-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;color:var(--gray-600)}
+.total-row.grand{font-size:16px;font-weight:700;color:var(--gray-800);border-top:0.5px solid var(--border);padding-top:10px;margin-top:8px}
+.total-row.grand span:last-child{color:var(--blue)}
+
+/* AUTOCOMPLETE */
+.autocomplete-wrap{position:relative}
+.ac-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:0.5px solid var(--border);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:100;max-height:200px;overflow-y:auto;display:none}
+.ac-dropdown.open{display:block}
+.ac-item{padding:10px 12px;cursor:pointer;border-bottom:0.5px solid var(--border);font-size:13px}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover{background:var(--gray-50)}
+.ac-item strong{font-weight:600;color:var(--gray-800);display:block}
+.ac-item small{color:var(--gray-400);font-size:11px}
+
+/* INVOICE PREVIEW (print-ready) */
+.inv-preview{background:#fff;max-width:720px;margin:0 auto;border:0.5px solid var(--border);border-radius:12px;overflow:hidden}
+.inv-topbar{height:5px;background:var(--blue)}
+.inv-body{padding:40px}
+.inv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px}
+.inv-brand h2{font-size:22px;font-weight:700;color:var(--gray-800);margin-bottom:14px}
+.inv-meta-row{display:flex;gap:16px;font-size:13px;margin-bottom:4px}
+.inv-meta-label{color:var(--gray-400);min-width:80px}
+.inv-meta-val{font-weight:600}
+.inv-logo-box{text-align:right}
+.inv-logo{width:120px;margin-left:auto;margin-bottom:8px}
+.inv-logo svg{display:block;width:100%;height:auto}
+.inv-co-name{font-size:13px;font-weight:700;color:var(--gray-800)}
+.inv-co-sub{font-size:11px;color:var(--gray-400);margin-top:2px}
+.bill-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;padding-bottom:20px;border-bottom:0.5px solid var(--border)}
+.bill-label{font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.bill-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.bill-addr{font-size:12px;color:var(--gray-600);line-height:1.7}
+.due-hero{margin-bottom:24px;padding-bottom:20px;border-bottom:0.5px solid var(--border)}
+.due-hero h3{font-size:20px;font-weight:700}
+.due-hero .due-sub{font-size:12px;color:var(--gray-400);margin-top:4px}
+.orig-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;background:var(--blue-light);color:var(--blue);margin-top:6px}
+.items-hd{display:grid;grid-template-columns:3fr 60px 90px 90px;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--gray-200);font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px}
+.items-hd span:not(:first-child){text-align:right}
+.item-row{display:grid;grid-template-columns:3fr 60px 90px 90px;gap:8px;padding:12px 0;border-bottom:0.5px solid var(--border)}
+.item-row:last-child{border-bottom:none}
+.item-desc{font-size:13px;font-weight:600;margin-bottom:2px}
+.item-sub{font-size:11px;color:var(--gray-400);line-height:1.6}
+.item-row span{font-size:13px;text-align:right;color:var(--gray-600);padding-top:2px}
+.inv-totals{display:flex;justify-content:flex-end;margin-top:20px;border-top:0.5px solid var(--border);padding-top:16px}
+.inv-totals-inner{width:250px}
+.inv-t-row{display:flex;justify-content:space-between;font-size:13px;color:var(--gray-600);padding:3px 0}
+.inv-t-grand{display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--gray-800);border-top:0.5px solid var(--gray-200);padding-top:10px;margin-top:8px}
+.inv-t-grand span:last-child{color:var(--blue)}
+.inv-bank{margin-top:24px;padding-top:20px;border-top:0.5px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.bank-label{font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px}
+.bank-row{display:flex;justify-content:space-between;font-size:12px;padding:2px 0}
+.bank-row .bk{color:var(--gray-400)}.bank-row .bv{font-weight:600}
+.sig-line{margin-top:36px;border-top:0.5px solid var(--border);padding-top:8px;font-size:11px;color:var(--gray-400);line-height:1.6}
+.inv-footer{padding:10px 40px;border-top:0.5px solid var(--border);background:var(--gray-50);display:flex;justify-content:space-between;font-size:11px;color:var(--gray-400)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:12px;border:0.5px solid var(--border);padding:24px;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+
+/* PRINT */
+@media print{
+  .nav,.action-bar,.no-print{display:none!important}
+  body{background:#fff}
+  .inv-preview{border:none;border-radius:0;max-width:100%}
+  .inv-topbar{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .page{display:block!important}
+  .app{display:block}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">TOURIS US <small>Invoice System</small></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="goPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="goPage('new-invoice')">+ สร้าง Invoice</button>
+    <button class="nav-tab" onclick="goPage('customers')">ลูกค้า</button>
+  </div>
+</nav>
+
+<div class="app">
+<div class="main">
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="page active" id="page-dashboard">
+  <div class="stat-grid">
+    <div class="stat"><div class="stat-label">Draft (รอยืนยัน)</div><div class="stat-val orange" id="count-draft">0</div></div>
+    <div class="stat"><div class="stat-label">รอชำระเงิน</div><div class="stat-val blue" id="count-pending">0</div></div>
+    <div class="stat"><div class="stat-label">เกินกำหนด</div><div class="stat-val red" id="count-overdue">0</div></div>
+    <div class="stat"><div class="stat-label">ชำระแล้วเดือนนี้</div><div class="stat-val green" id="count-paid">฿0</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">Draft — รอยืนยันออก Invoice</div>
+      <button class="btn btn-primary btn-sm" onclick="goPage('new-invoice')">+ สร้างใหม่</button>
+    </div>
+    <table class="tbl"><thead><tr>
+      <th>Invoice No.</th><th>วันที่</th><th>ลูกค้า</th><th>ยอด</th><th>สถานะ</th><th></th>
+    </tr></thead><tbody id="tbl-draft"><tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">ไม่มีรายการ Draft</td></tr></tbody></table>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-title">รอชำระ + เกินกำหนด</div></div>
+    <table class="tbl"><thead><tr>
+      <th>Invoice No.</th><th>วันที่</th><th>ลูกค้า</th><th>ยอด</th><th>ครบกำหนด</th><th>สถานะ</th><th></th>
+    </tr></thead><tbody id="tbl-pending"><tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:20px">ไม่มีรายการ</td></tr></tbody></table>
+  </div>
+</div>
+
+<!-- ═══ NEW INVOICE ═══ -->
+<div class="page" id="page-new-invoice">
+  <div class="card">
+    <div class="card-head"><div class="card-title">ข้อมูลลูกค้า</div></div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="field autocomplete-wrap">
+          <label>ค้นหาลูกค้า (ชื่อ / Tax ID / รหัส)</label>
+          <input type="hidden" id="f-custid" value="">
+          <input type="text" id="cust-search" placeholder="พิมพ์เพื่อค้นหา..." autocomplete="off" oninput="searchCust(this.value)">
+          <div class="ac-dropdown" id="ac-dropdown"></div>
+        </div>
+        <div class="field">
+          <label>ประเภท</label>
+          <select id="f-type"><option value="company">บริษัท / ห้างหุ้นส่วน</option><option value="individual">บุคคลธรรมดา</option><option value="university">มหาวิทยาลัย / หน่วยงาน</option></select>
+        </div>
+        <div class="field form-full">
+          <label>ชื่อบริษัท / ชื่อลูกค้า *</label>
+          <input type="text" id="f-name" placeholder="บริษัท ยูเนี่ยนนิฟโก้ จำกัด">
+        </div>
+        <div class="field"><label>ที่อยู่ 1</label><input type="text" id="f-addr1" placeholder="เลขที่ ถนน หมู่"></div>
+        <div class="field"><label>ที่อยู่ 2</label><input type="text" id="f-addr2" placeholder="ตำบล อำเภอ"></div>
+        <div class="field"><label>ที่อยู่ 3</label><input type="text" id="f-addr3" placeholder="จังหวัด รหัสไปรษณีย์"></div>
+        <div class="field"><label>เลขประจำตัวผู้เสียภาษี</label><input type="text" id="f-taxid" placeholder="0000000000000"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-title">ประเภทบริการ</div></div>
+    <div class="card-body">
+      <div class="svc-grid">
+        <div class="svc-item" onclick="toggleSvc(this,'airline_ticket')"><span class="svc-icon">✈️</span><div><div class="svc-text">ตั๋วเครื่องบิน</div><div class="svc-sub">Airline ticket</div></div></div>
+        <div class="svc-item" onclick="toggleSvc(this,'hotel')"><span class="svc-icon">🏨</span><div><div class="svc-text">โรงแรม</div><div class="svc-sub">Hotel booking</div></div></div>
+        <div class="svc-item" onclick="toggleSvc(this,'travel_insurance')"><span class="svc-icon">🛡️</span><div><div class="svc-text">ประกันภัยเดินทาง</div><div class="svc-sub">Travel insurance</div></div></div>
+        <div class="svc-item" onclick="toggleSvc(this,'visa')"><span class="svc-icon">📋</span><div><div class="svc-text">วีซ่า</div><div class="svc-sub">Visa service</div></div></div>
+        <div class="svc-item" onclick="toggleSvc(this,'tour')"><span class="svc-icon">🎒</span><div><div class="svc-text">แพคเกจทัวร์</div><div class="svc-sub">Tour package</div></div></div>
+        <div class="svc-item" onclick="toggleSvc(this,'service_fee')"><span class="svc-icon">🔧</span><div><div class="svc-text">ค่าบริการ</div><div class="svc-sub">Service fee</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">รายการสินค้า / บริการ</div>
+      <button class="btn btn-sm" onclick="addLine()">+ เพิ่มรายการ</button>
+    </div>
+    <div class="card-body">
+      <table class="line-table">
+        <thead><tr>
+          <th style="width:42%">คำอธิบาย</th>
+          <th style="width:12%">จำนวนเงิน</th>
+          <th style="width:8%">Qty</th>
+          <th style="width:8%">VAT</th>
+          <th style="width:12%">ยอด</th>
+          <th style="width:10%">ภาษีหัก ณ จ่าย</th>
+          <th style="width:4%"></th>
+        </tr></thead>
+        <tbody id="line-rows"></tbody>
+      </table>
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-top:16px">
+        <div style="flex:1">
+          <div class="section-divider" style="margin-top:0;padding-top:0;border-top:none">เงื่อนไขการชำระ</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Credit Term (วัน)</label>
+              <input type="number" id="credit-term" value="0" min="0" oninput="calcDueDate()">
+            </div>
+            <div class="field">
+              <label>วันครบกำหนด</label>
+              <input type="text" id="due-date-display" readonly style="background:var(--gray-50)">
+            </div>
+            <div class="field form-full">
+              <label>หมายเหตุ</label>
+              <textarea id="f-note" placeholder="หมายเหตุเพิ่มเติม..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="totals-box">
+          <div class="total-row"><span>ยอดก่อน VAT</span><span id="tot-sub">฿0.00</span></div>
+          <div class="total-row"><span>VAT 7%</span><span id="tot-vat">฿0.00</span></div>
+          <div class="total-row"><span>ยอดรวม</span><span id="tot-total">฿0.00</span></div>
+          <div class="total-row"><span>ภาษีหัก ณ ที่จ่าย 3%</span><span id="tot-wht">฿0.00</span></div>
+          <div class="total-row grand"><span>ยอดสุทธิที่รับ</span><span id="tot-net">฿0.00</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:12px 16px;border-top:0.5px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="goPage('dashboard')">ยกเลิก</button>
+      <button class="btn" onclick="previewInvoice()">👁 Preview</button>
+      <button class="btn btn-primary" id="btn-save-draft" onclick="saveDraft()">💾 บันทึก Draft</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PREVIEW ═══ -->
+<div class="page" id="page-preview">
+  <div class="action-bar no-print" style="display:flex;gap:8px;margin-bottom:16px" id="preview-actions">
+    <button class="btn" onclick="goPage('new-invoice')">✏️ แก้ไข</button>
+    <button class="btn btn-primary" id="btn-confirm" onclick="confirmInvoice()">✅ ยืนยันออก Invoice</button>
+    <button class="btn btn-success" id="btn-print" onclick="window.print()" style="display:none">🖨️ Print PDF</button>
+    <button class="btn" id="btn-email" onclick="openEmailModal()" style="display:none">📧 ส่งอีเมล</button>
+    <button class="btn btn-danger" id="btn-pay" onclick="openPayModal()" style="display:none">💰 บันทึกชำระ</button>
+  </div>
+  <div class="inv-preview" id="invoice-preview-content">
+    <div class="inv-topbar"></div>
+    <div class="inv-body">
+      <div class="inv-header">
+        <div class="inv-brand">
+          <h2>Invoice</h2>
+          <div class="inv-meta-row"><span class="inv-meta-label">Invoice no.</span><span class="inv-meta-val" id="pv-no" style="font-family:monospace">—</span></div>
+          <div class="inv-meta-row"><span class="inv-meta-label">Date of issue</span><span class="inv-meta-val" id="pv-date">—</span></div>
+          <div class="inv-meta-row"><span class="inv-meta-label">Date due</span><span class="inv-meta-val" id="pv-due">—</span></div>
+          <div class="inv-meta-row"><span class="inv-meta-label">Credit term</span><span class="inv-meta-val" id="pv-credit">—</span></div>
+          <div class="inv-meta-row"><span class="inv-meta-label">Tax ID</span><span class="inv-meta-val">0103550009517</span></div>
+        </div>
+        <div class="inv-logo-box">
+          <div class="inv-logo" id="pv-logo"><svg width="1248" height="850" viewBox="0 0 1248 850" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="wingGrad" gradientUnits="objectBoundingBox" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#6DC421"/><stop offset="100%" stop-color="#1D8225"/></linearGradient></defs><g transform="translate(72.6,-243.4) scale(1.077)"><g transform="translate(0.000000,1024.000000) scale(0.100000,-0.100000)" fill="url(#wingGrad)" stroke="none"><path d="M8570 7953 c-133 -171 -769 -818 -1075 -1093 -205 -186 -378 -338 -429 -380 -24 -19 -101 -82 -172 -140 -195 -160 -253 -202 -266 -194 -6 4 -8 3 -4 -4 6 -9 -45 -52 -228 -192 -18 -14 -112 -81 -208 -150 -96 -69 -196 -141 -223 -160 -85 -62 -289 -202 -323 -221 -18 -11 -38 -17 -43 -13 -5 3 -8 0 -7 -8 2 -7 -5 -12 -14 -12 -10 1 -16 -2 -15 -6 1 -4 -11 -18 -28 -32 -32 -26 -282 -188 -292 -188 -3 0 -34 -20 -68 -44 -97 -67 -204 -128 -215 -121 -6 4 -9 1 -8 -5 2 -6 -40 -35 -92 -65 -52 -30 -104 -61 -115 -70 -11 -8 -26 -13 -34 -10 -9 3 -12 3 -8 -1 9 -10 -13 -25 -130 -85 -54 -28 -100 -55 -103 -59 -3 -4 -43 -27 -90 -50 -47 -24 -116 -61 -154 -83 -65 -37 -476 -244 -596 -299 -30 -14 -109 -51 -175 -83 -66 -31 -139 -63 -162 -71 -23 -8 -79 -32 -125 -53 -110 -51 -235 -94 -250 -85 -6 4 -8 3 -5 -4 13 -20 -386 -166 -713 -262 -41 -12 -91 -27 -110 -34 -109 -41 -580 -151 -798 -186 l-72 -12 23 -18 c71 -56 282 -174 369 -206 159 -58 279 -97 336 -110 120 -26 325 -63 412 -74 140 -17 160 -21 154 -31 -3 -5 40 -7 103 -5 73 3 92 2 58 -3 -38 -6 -42 -8 -18 -9 17 -1 39 -5 48 -9 26 -9 -157 -61 -230 -65 -33 -2 -63 -7 -66 -11 -11 -15 -197 -47 -335 -57 -152 -11 -181 -22 -196 -75 -6 -23 0 -43 25 -92 102 -203 288 -350 520 -415 39 -10 74 -22 77 -26 11 -15 344 6 435 27 50 11 124 28 165 36 41 9 99 23 128 32 29 8 59 12 68 9 8 -3 13 -2 10 3 -3 4 61 29 142 55 81 26 197 66 257 88 61 22 153 55 205 73 52 19 145 55 205 81 190 80 229 94 243 89 7 -2 11 -1 8 4 -5 7 180 101 198 101 4 0 112 51 239 114 221 109 237 115 352 136 139 25 384 82 500 117 44 13 96 25 115 28 19 2 112 30 205 61 94 31 193 63 220 69 28 7 97 32 155 55 58 23 146 56 195 74 50 18 126 50 170 71 44 21 107 48 141 61 33 12 79 32 102 44 23 12 47 18 53 14 7 -4 9 -3 6 3 -4 6 35 30 91 57 174 83 529 275 647 351 132 84 253 160 285 178 19 10 66 42 105 71 38 29 117 86 175 126 173 123 380 280 380 290 0 5 9 12 21 15 12 4 38 24 59 45 21 21 78 72 128 114 85 72 110 96 99 96 -7 0 -123 -66 -203 -116 -39 -24 -75 -44 -81 -44 -10 0 -189 -94 -208 -110 -22 -18 -138 -59 -149 -53 -6 3 -8 2 -4 -2 10 -11 -92 -67 -211 -117 -51 -21 -103 -45 -115 -53 -11 -8 -62 -30 -113 -49 -51 -19 -116 -46 -145 -59 -29 -13 -84 -36 -123 -50 -38 -14 -119 -45 -180 -67 -201 -76 -547 -191 -642 -214 -81 -20 -231 -59 -340 -89 -51 -14 -93 -22 -93 -18 0 4 37 39 83 77 177 148 594 580 737 764 19 24 61 74 93 109 31 36 57 69 57 73 0 13 48 56 55 49 4 -3 5 -1 4 4 -2 6 2 20 9 33 19 34 -3 27 -41 -12 -56 -60 -260 -217 -274 -212 -7 3 -12 0 -10 -6 3 -15 -145 -129 -161 -123 -7 3 -11 1 -8 -4 5 -8 -39 -44 -167 -137 -82 -59 -376 -254 -384 -254 -5 0 -24 -13 -43 -28 -38 -31 -77 -54 -190 -115 -41 -22 -89 -50 -106 -63 -46 -34 -204 -105 -218 -97 -6 3 -8 2 -4 -2 16 -17 -222 -132 -246 -118 -6 3 -8 2 -3 -2 13 -15 -152 -87 -218 -95 -33 -4 -61 -6 -63 -5 -2 2 41 33 95 71 54 37 100 70 103 73 3 4 23 18 45 33 22 15 67 50 99 77 33 28 63 48 68 45 4 -3 11 2 14 10 3 8 65 63 137 123 336 275 653 589 961 949 70 82 150 175 178 207 88 101 256 317 339 435 22 31 54 74 73 96 45 53 134 178 204 286 31 47 73 108 94 136 21 28 38 56 38 62 0 7 3 12 8 12 4 0 32 41 62 90 30 50 79 127 109 173 53 81 180 294 209 352 8 17 24 43 35 58 21 31 124 221 217 402 31 61 64 124 72 140 52 99 139 287 135 291 -3 3 -15 -8 -27 -23z m-5793 -4929 c-3 -3 -12 -4 -19 -1 -8 3 -5 6 6 6 11 1 17 -2 13 -5z M6520 4110 c-13 -8 -12 -10 3 -10 9 0 17 5 17 10 0 12 -1 12 -20 0z M5518 3993 c6 -2 12 -11 12 -19 0 -9 5 -12 10 -9 19 12 10 35 -12 34 -13 0 -17 -3 -10 -6z M2428 3043 c7 -3 16 -2 19 1 4 3 -2 6 -13 5 -11 0 -14 -3 -6 -6z M1851 2794 c0 -11 3 -14 6 -6 3 7 2 16 -1 19 -3 4 -6 -2 -5 -13z"/></g></g><g transform="translate(0,685) translate(0.000000,165.000000) scale(0.100000,-0.100000)" stroke="none"><path fill="#FA7002" d="M2100 1575 c-365 -78 -610 -340 -650 -695 -16 -145 9 -288 75 -425 100 -207 273 -349 510 -417 69 -20 103 -23 240 -23 187 0 251 13 390 80 159 77 280 196 355 350 65 135 75 181 75 350 0 129 -3 160 -24 225 -44 143 -113 254 -219 351 -105 97 -211 154 -358 195 -81 22 -308 28 -394 9z m266 -306 c306 -56 472 -396 333 -685 -138 -290 -553 -353 -770 -116 -230 251 -136 666 176 776 105 38 162 43 261 25z M7888 1570 c-133 -33 -227 -91 -294 -182 -109 -148 -113 -368 -10 -509 64 -86 162 -135 460 -229 157 -49 207 -77 231 -126 42 -89 -17 -180 -130 -204 -100 -21 -210 6 -265 65 -12 13 -31 48 -41 77 -10 29 -21 53 -26 53 -86 -3 -333 -30 -333 -37 0 -29 35 -139 60 -187 59 -117 162 -201 305 -248 71 -23 96 -27 220 -27 224 -1 344 42 460 165 89 95 109 149 110 299 0 104 -3 120 -27 172 -14 31 -45 77 -68 102 -78 84 -162 125 -430 207 -163 50 -205 70 -231 112 -32 51 -22 121 24 163 95 88 292 62 347 -46 11 -22 20 -46 20 -55 0 -10 9 -15 28 -15 34 0 315 29 319 33 8 8 -31 127 -59 178 -107 201 -399 305 -670 239z M10 1410 l0 -150 210 0 210 0 2 -612 3 -613 173 -3 172 -2 0 615 0 615 215 0 215 0 0 150 0 150 -600 0 -600 0 0 -150z M3460 1062 c0 -464 1 -504 20 -576 56 -219 219 -387 435 -447 103 -30 275 -32 385 -6 179 42 325 158 405 322 69 140 68 136 73 698 l3 507 -175 0 -175 0 -3 -497 -3 -498 -26 -56 c-51 -109 -138 -168 -260 -177 -132 -9 -251 58 -298 169 -34 77 -41 186 -41 642 l0 417 -170 0 -170 0 0 -498z M5210 795 l0 -765 170 0 170 0 0 281 0 280 47 -3 47 -3 139 -205 c76 -113 160 -236 186 -275 l47 -70 197 -3 c108 -1 197 0 197 4 0 7 -60 93 -278 401 -67 95 -122 175 -122 177 0 2 17 10 38 17 149 48 258 159 297 303 24 87 17 238 -14 318 -61 158 -205 267 -393 298 -35 5 -213 10 -395 10 l-333 0 0 -765z m707 438 c59 -32 86 -75 91 -144 5 -73 -1 -99 -35 -140 -49 -58 -89 -69 -265 -69 l-158 0 0 191 0 191 163 -4 c144 -3 167 -6 204 -25z M6780 795 l0 -765 170 0 170 0 0 765 0 765 -170 0 -170 0 0 -765z"/><path fill="#3D9D25" d="M11785 1610 c-198 -23 -355 -120 -424 -262 -83 -170 -57 -370 61 -489 66 -65 158 -109 363 -174 267 -83 318 -113 331 -196 14 -82 -55 -152 -168 -171 -125 -21 -238 25 -283 116 -14 28 -25 58 -25 68 0 10 -3 18 -7 18 -54 -2 -336 -30 -340 -34 -12 -12 18 -124 52 -192 65 -132 204 -234 370 -269 39 -8 120 -15 181 -15 258 0 453 101 537 277 31 65 32 73 32 193 0 121 -1 127 -33 192 -55 113 -156 189 -327 246 -33 11 -127 41 -209 67 -181 58 -216 83 -223 161 -4 40 0 55 19 83 71 104 272 110 362 11 19 -22 38 -55 42 -75 5 -27 10 -34 23 -31 9 3 82 10 163 17 82 7 153 16 159 19 7 5 6 22 -2 56 -40 167 -171 303 -344 358 -47 14 -202 38 -235 35 -8 -1 -42 -5 -75 -9z M9622 1068 c5 -566 4 -559 72 -703 129 -274 452 -410 781 -328 219 54 385 220 451 448 15 52 18 126 21 578 l5 517 -176 0 -176 0 0 -463 c0 -489 -4 -546 -45 -627 -107 -210 -433 -209 -540 1 -40 77 -45 148 -45 632 l0 457 -176 0 -175 0 3 -512z"/></g></svg></div>
+          <div class="inv-co-name">TOURIS US</div>
+          <div class="inv-co-sub">ห้างหุ้นส่วนจำกัด ทัวริส อัส</div>
+        </div>
+      </div>
+      <div class="bill-grid">
+        <div>
+          <div class="bill-label">From</div>
+          <div class="bill-name">ห้างหุ้นส่วนจำกัด ทัวริส อัส</div>
+          <div class="bill-addr">3/71 ซอยลาดพร้าว 31 ถนนลาดพร้าว<br>แขวงจันทรเกษม เขตจตุจักร<br>กรุงเทพมหานคร 10900<br>Tel. 085-185-9000 | tourisus@gmail.com</div>
+        </div>
+        <div>
+          <div class="bill-label">Bill to</div>
+          <div class="bill-name" id="pv-cust-name">—</div>
+          <div class="bill-addr" id="pv-cust-addr">—</div>
+        </div>
+      </div>
+      <div class="due-hero">
+        <h3 id="pv-due-hero">฿0.00 due —</h3>
+        <div class="due-sub">กรุณาโอนเงินภายในวันที่กำหนด</div>
+        <div class="orig-badge">ต้นฉบับ / Original</div>
+      </div>
+      <div class="items-hd"><span>Description</span><span>Qty</span><span>Unit price</span><span>Amount</span></div>
+      <div id="pv-items"></div>
+      <div class="inv-totals">
+        <div class="inv-totals-inner">
+          <div class="inv-t-row"><span>Subtotal</span><span id="pv-sub">—</span></div>
+          <div class="inv-t-row"><span>VAT 7%</span><span id="pv-vat">—</span></div>
+          <div class="inv-t-grand"><span>Amount due</span><span id="pv-total">—</span></div>
+          <div style="font-size:11px;color:var(--gray-400);text-align:right;margin-top:4px" id="pv-wht-note"></div>
+        </div>
+      </div>
+      <div class="inv-bank">
+        <div>
+          <div class="bank-label">ชำระเงินโดย / Payment to</div>
+          <div class="bank-row"><span class="bk">กสิกรไทย (KBank) ออมทรัพย์</span><span class="bv">045-2-92206-1</span></div>
+          <div class="bank-row"><span class="bk">ไทยพาณิชย์ (SCB) ออมทรัพย์</span><span class="bv">928-2-07743-7</span></div>
+          <div class="bank-row"><span class="bk">กรุงศรี (BAY) ออมทรัพย์</span><span class="bv">899-8-95888-8</span></div>
+          <div class="bank-row" style="margin-top:6px"><span class="bk">ชื่อบัญชี</span><span class="bv">ห้างหุ้นส่วนจำกัด ทัวริส อัส</span></div>
+        </div>
+        <div><div class="bank-label">ลงนามผู้มีอำนาจ</div><div class="sig-line">............................................<br>Authorized Signature<br>ห้างหุ้นส่วนจำกัด ทัวริส อัส</div></div>
+      </div>
+    </div>
+    <div class="inv-footer"><span>ห้างหุ้นส่วนจำกัด ทัวริส อัส · Tax ID 0103550009517</span><span>Page 1 of 1</span></div>
+  </div>
+</div>
+
+<!-- ═══ CUSTOMERS ═══ -->
+<div class="page" id="page-customers">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">ฐานข้อมูลลูกค้า</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddCust()">+ เพิ่มลูกค้า</button>
+    </div>
+    <div class="card-body" style="padding-bottom:8px">
+      <div class="field"><input type="text" id="cust-filter" placeholder="ค้นหาชื่อ / Tax ID / รหัส..." oninput="filterCusts(this.value)"></div>
+    </div>
+    <table class="tbl"><thead><tr>
+      <th>รหัส</th><th>ชื่อ</th><th>Tax ID</th><th>ที่อยู่</th><th>Credit</th><th></th>
+    </tr></thead><tbody id="tbl-custs"></tbody></table>
+  </div>
+</div>
+
+</div><!-- end main -->
+</div><!-- end app -->
+
+<!-- Payment Modal -->
+<div class="modal-bg" id="pay-modal">
+  <div class="modal">
+    <div class="modal-title">💰 บันทึกการชำระเงิน</div>
+    <div style="background:var(--gray-50);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--gray-400)">Invoice</span><span id="pm-inv-no" style="font-family:monospace;font-weight:600">—</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--gray-400)">ลูกค้า</span><span id="pm-cust">—</span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;border-top:0.5px solid var(--border);padding-top:8px;margin-top:4px"><span>ยอดที่ต้องชำระ</span><span id="pm-total" style="color:var(--blue)">—</span></div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>วันที่รับชำระ</label><input type="date" id="pm-date"></div>
+      <div class="field"><label>ช่องทาง</label><select id="pm-method"><option value="transfer">โอนเงิน</option><option value="cheque">เช็ค</option><option value="cash">เงินสด</option></select></div>
+      <div class="field"><label>ยอดที่ชำระ</label><input type="number" id="pm-amount"></div>
+      <div class="field"><label>เลขอ้างอิง / เลขเช็ค</label><input type="text" id="pm-ref" placeholder="TRF-XXXXXXXX"></div>
+      <div class="field form-full"><label>หมายเหตุ</label><input type="text" id="pm-note" placeholder="หมายเหตุเพิ่มเติม"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closePayModal()">ยกเลิก</button>
+      <button class="btn btn-success" onclick="confirmPay()">✅ ยืนยันชำระแล้ว</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Customer Modal -->
+<div class="modal-bg" id="add-cust-modal">
+  <div class="modal">
+    <div class="modal-title">+ เพิ่มลูกค้าใหม่</div>
+    <div class="form-grid">
+      <div class="field"><label>รหัสย่อ (Code)</label><input type="text" id="nc-code" placeholder="UNC"></div>
+      <div class="field"><label>ประเภท</label><select id="nc-type"><option value="company">บริษัท</option><option value="individual">บุคคลธรรมดา</option><option value="university">มหาวิทยาลัย</option></select></div>
+      <div class="field form-full"><label>ชื่อ *</label><input type="text" id="nc-name" placeholder="บริษัท ... จำกัด"></div>
+      <div class="field form-full"><label>ที่อยู่ 1</label><input type="text" id="nc-addr1"></div>
+      <div class="field"><label>ที่อยู่ 2</label><input type="text" id="nc-addr2"></div>
+      <div class="field"><label>ที่อยู่ 3</label><input type="text" id="nc-addr3"></div>
+      <div class="field"><label>Tax ID</label><input type="text" id="nc-taxid"></div>
+      <div class="field"><label>Credit Term (วัน)</label><input type="number" id="nc-credit" value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddCust()">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveCust()">✅ บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let invoices = [];
+let customers = [];
+let lineItems = [];
+let currentInvoiceId = null;
+
+// ── Map API rows to the shape the rest of this file expects ──
+function mapApiCustomer(c){
+  return {
+    id:c.id, code:c.code||'', type:c.type||'company', name:c.name_th,
+    addr1:c.address1||'', addr2:c.address2||'', addr3:c.address3||'',
+    taxid:c.tax_id||'', credit:c.credit_term_days||0
+  };
+}
+function mapApiInvoice(inv){
+  return {
+    id:inv.id, invoiceNo:inv.invoice_no, date:inv.invoice_date, dueDate:inv.due_date,
+    custName:inv.customers ? inv.customers.name_th : '—',
+    total:inv.total_amount, netAmount:inv.total_amount,
+    status:inv.status, paidDate:inv.paid_date
+  };
+}
+
+async function loadCustomers(){
+  const res=await fetch('/api/customers');
+  const data=await res.json();
+  customers=(data.customers||[]).map(mapApiCustomer);
+}
+async function loadInvoices(){
+  const res=await fetch('/api/invoices');
+  const data=await res.json();
+  invoices=(data.invoices||[]).map(mapApiInvoice);
+}
+async function refreshAll(){
+  await Promise.all([loadCustomers(), loadInvoices()]);
+  renderDashboard();
+  renderCustomers();
+}
+
+// Full detail (with items + customer address) for the preview page —
+// the dashboard list above only carries summary fields.
+async function loadInvoiceDetail(id){
+  const res=await fetch('/api/invoices/'+id);
+  const data=await res.json();
+  if(!res.ok) throw new Error(data.error||'โหลด Invoice ไม่สำเร็จ');
+  const inv=data.invoice, cust=inv.customers||{};
+  return {
+    id:inv.id, invoiceNo:inv.invoice_no, date:inv.invoice_date, dueDate:inv.due_date,
+    creditTerm:inv.credit_term_days,
+    custName:cust.name_th||'—',
+    custAddr1:cust.address1, custAddr2:cust.address2, custAddr3:cust.address3, custTaxId:cust.tax_id,
+    subtotal:inv.subtotal, vatAmount:inv.vat_amount, total:inv.total_amount,
+    whtAmount:0, netAmount:inv.total_amount, // WHT not tracked in the current schema
+    status:inv.status, paidDate:inv.paid_date,
+    items:(data.items||[]).map(it=>({desc:it.description,amount:it.unit_price,qty:it.quantity,vat:it.item_vat_rate,wht:0})),
+  };
+}
+
+function fmt(n){return '฿'+parseFloat(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmtDate(d){if(!d)return'—';const dt=new Date(d);return dt.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'})}
+
+// ─── NAVIGATION ───
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const map={dashboard:0,'new-invoice':1,customers:2};
+  if(map[id]!==undefined) document.querySelectorAll('.nav-tab')[map[id]].classList.add('active');
+  if(id==='dashboard') renderDashboard();
+  if(id==='customers') renderCustomers();
+  if(id==='new-invoice') initForm();
+}
+
+// ─── DASHBOARD ───
+function renderDashboard(){
+  const today = new Date().toISOString().split('T')[0];
+  const thisMonth = today.slice(0,7);
+  let draft=[], pending=[], paidAmt=0;
+  invoices.forEach(inv=>{
+    const status = getStatus(inv, today);
+    if(status==='draft') draft.push(inv);
+    else if(status==='pending'||status==='overdue') pending.push(inv);
+    else if(inv.status==='paid' && inv.paidDate && inv.paidDate.startsWith(thisMonth)) paidAmt+=parseFloat(inv.total||0);
+  });
+  document.getElementById('count-draft').textContent=draft.length;
+  document.getElementById('count-pending').textContent=pending.filter(i=>getStatus(i,today)==='pending').length;
+  document.getElementById('count-overdue').textContent=pending.filter(i=>getStatus(i,today)==='overdue').length;
+  document.getElementById('count-paid').textContent=fmt(paidAmt);
+
+  const tbody1 = document.getElementById('tbl-draft');
+  tbody1.innerHTML = draft.length ? draft.map(inv=>`
+    <tr>
+      <td style="font-family:monospace;font-size:12px">${inv.invoiceNo}</td>
+      <td style="color:var(--gray-400)">${fmtDate(inv.date)}</td>
+      <td>${inv.custName||'—'}</td>
+      <td style="font-weight:600">${fmt(inv.total)}</td>
+      <td><span class="badge badge-draft">Draft</span></td>
+      <td><button class="btn btn-xs" onclick="viewInvoice('${inv.id}')">ดู</button></td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">ไม่มีรายการ Draft</td></tr>';
+
+  const tbody2 = document.getElementById('tbl-pending');
+  tbody2.innerHTML = pending.length ? pending.map(inv=>{
+    const s=getStatus(inv,today);
+    return `<tr>
+      <td style="font-family:monospace;font-size:12px">${inv.invoiceNo}</td>
+      <td style="color:var(--gray-400)">${fmtDate(inv.date)}</td>
+      <td>${inv.custName||'—'}</td>
+      <td style="font-weight:600">${fmt(inv.total)}</td>
+      <td style="${s==='overdue'?'color:var(--red);font-weight:600':''}">${fmtDate(inv.dueDate)}${s==='overdue'?' 🔴':''}</td>
+      <td><span class="badge badge-${s}">${s==='overdue'?'เกินกำหนด':'รอชำระ'}</span></td>
+      <td><button class="btn btn-xs btn-danger" onclick="viewInvoice('${inv.id}')">ชำระ</button></td>
+    </tr>`;}).join('') : '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:20px">ไม่มีรายการ</td></tr>';
+}
+
+function getStatus(inv, today){
+  if(inv.status==='paid') return 'paid';
+  if(inv.status==='cancelled') return 'cancelled';
+  if(inv.status==='pending'){return (inv.dueDate && inv.dueDate < today)?'overdue':'pending'}
+  return 'draft';
+}
+
+// ─── CUSTOMER SEARCH ───
+function searchCust(q){
+  const dd=document.getElementById('ac-dropdown');
+  if(!q||q.length<1){dd.classList.remove('open');return}
+  const matches=customers.filter(c=>
+    c.name.toLowerCase().includes(q.toLowerCase())||
+    (c.taxid||'').includes(q)||(c.code||'').toLowerCase().includes(q.toLowerCase())
+  ).slice(0,6);
+  if(!matches.length){dd.classList.remove('open');return}
+  dd.innerHTML=matches.map(c=>`
+    <div class="ac-item" onclick="fillCust('${c.id}')">
+      <strong>${c.name}</strong>
+      <small>${c.code?'['+c.code+'] ':''} Tax ID: ${c.taxid||'—'} · Credit ${c.credit||0} วัน</small>
+    </div>`).join('');
+  dd.classList.add('open');
+}
+function fillCust(id){
+  const c=customers.find(x=>x.id===id);if(!c)return;
+  document.getElementById('f-custid').value=c.id;
+  document.getElementById('f-name').value=c.name||'';
+  document.getElementById('f-addr1').value=c.addr1||'';
+  document.getElementById('f-addr2').value=c.addr2||'';
+  document.getElementById('f-addr3').value=c.addr3||'';
+  document.getElementById('f-taxid').value=c.taxid||'';
+  document.getElementById('f-type').value=c.type||'company';
+  document.getElementById('credit-term').value=c.credit||0;
+  calcDueDate();
+  document.getElementById('ac-dropdown').classList.remove('open');
+  document.getElementById('cust-search').value='';
+}
+// If the customer name is hand-edited after an autocomplete pick, treat it as
+// a different (possibly new) customer rather than silently keeping the old id.
+document.getElementById('f-name').addEventListener('input',()=>{document.getElementById('f-custid').value='';});
+document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))document.getElementById('ac-dropdown').classList.remove('open')});
+
+// ─── SERVICE TOGGLE ───
+function toggleSvc(el){el.classList.toggle('active')}
+
+// ─── LINE ITEMS ───
+function initForm(){
+  lineItems=[{desc:'',amount:0,qty:1,vat:0,wht:0}];
+  renderLines();
+  const today=new Date().toISOString().split('T')[0];
+  calcDueDate();
+}
+function addLine(){
+  lineItems.push({desc:'',amount:0,qty:1,vat:0,wht:0});
+  renderLines();
+}
+function removeLine(i){
+  lineItems.splice(i,1);
+  renderLines();
+  calcTotals();
+}
+function renderLines(){
+  document.getElementById('line-rows').innerHTML=lineItems.map((it,i)=>`
+    <tr>
+      <td><input type="text" value="${it.desc||''}" placeholder="คำอธิบายรายการ..." onchange="lineItems[${i}].desc=this.value"></td>
+      <td><input type="number" value="${it.amount||0}" min="0" step="0.01" onchange="lineItems[${i}].amount=parseFloat(this.value)||0;calcTotals()"></td>
+      <td><input type="number" value="${it.qty||1}" min="1" onchange="lineItems[${i}].qty=parseInt(this.value)||1;calcTotals()"></td>
+      <td><select onchange="lineItems[${i}].vat=parseFloat(this.value);calcTotals()">
+        <option value="0" ${!it.vat?'selected':''}>0%</option>
+        <option value="7" ${it.vat===7?'selected':''}>7%</option>
+      </select></td>
+      <td style="text-align:right;font-weight:600;padding-right:8px">${fmt((it.amount||0)*(it.qty||1))}</td>
+      <td><select onchange="lineItems[${i}].wht=parseFloat(this.value);calcTotals()">
+        <option value="0" ${!it.wht?'selected':''}>ไม่หัก</option>
+        <option value="3" ${it.wht===3?'selected':''}>3%</option>
+        <option value="1" ${it.wht===1?'selected':''}>1%</option>
+      </select></td>
+      <td><button class="btn btn-xs btn-danger" onclick="removeLine(${i})">✕</button></td>
+    </tr>`).join('');
+  calcTotals();
+}
+function calcTotals(){
+  let sub=0,vat=0,wht=0;
+  lineItems.forEach(it=>{
+    const base=(it.amount||0)*(it.qty||1);
+    sub+=base;
+    vat+=base*(it.vat||0)/100;
+    wht+=base*(it.wht||0)/100;
+  });
+  const total=sub+vat;
+  document.getElementById('tot-sub').textContent=fmt(sub);
+  document.getElementById('tot-vat').textContent=fmt(vat);
+  document.getElementById('tot-total').textContent=fmt(total);
+  document.getElementById('tot-wht').textContent='-'+fmt(wht);
+  document.getElementById('tot-net').textContent=fmt(total-wht);
+}
+function calcDueDate(){
+  const days=parseInt(document.getElementById('credit-term').value||0);
+  const d=new Date();d.setDate(d.getDate()+days);
+  document.getElementById('due-date-display').value=d.toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'});
+}
+
+// ─── SAVE DRAFT ───
+async function saveDraft(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){alert('กรุณากรอกชื่อลูกค้า');return}
+  if(!lineItems.some(it=>it.amount>0)){alert('กรุณาเพิ่มรายการอย่างน้อย 1 รายการ');return}
+
+  const btn=document.getElementById('btn-save-draft');
+  if(btn){btn.disabled=true;btn.textContent='กำลังบันทึก...';}
+
+  try{
+    let customerId=document.getElementById('f-custid').value;
+
+    // No existing customer selected (typed a name manually) -> create one.
+    if(!customerId){
+      const custRes=await fetch('/api/customers',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          type:document.getElementById('f-type').value,
+          name_th:name,
+          address1:document.getElementById('f-addr1').value,
+          address2:document.getElementById('f-addr2').value,
+          address3:document.getElementById('f-addr3').value,
+          tax_id:document.getElementById('f-taxid').value,
+          credit_term_days:parseInt(document.getElementById('credit-term').value||0),
+        }),
+      });
+      const custData=await custRes.json();
+      if(!custRes.ok) throw new Error(custData.error||'สร้างข้อมูลลูกค้าไม่สำเร็จ');
+      customerId=custData.customer.id;
+    }
+
+    let sub=0,vat=0;
+    lineItems.forEach(it=>{const base=(it.amount||0)*(it.qty||1);sub+=base;vat+=base*(it.vat||0)/100;});
+    const credit=parseInt(document.getElementById('credit-term').value||0);
+
+    const items=lineItems.filter(it=>it.amount>0).map(it=>({
+      serviceType:'other',
+      description:it.desc||'',
+      unitPrice:it.amount||0,
+      quantity:it.qty||1,
+      itemVatRate:it.vat||0,
+    }));
+
+    const invRes=await fetch('/api/invoices',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        customerId, creditTermDays:credit,
+        subtotal:sub, serviceFee:0, vatRate:items.some(i=>i.itemVatRate>0)?7:0,
+        note:document.getElementById('f-note').value,
+        items,
+      }),
+    });
+    const invData=await invRes.json();
+    if(!invRes.ok) throw new Error(invData.error||'บันทึก Invoice ไม่สำเร็จ');
+
+    await refreshAll();
+    const inv=await loadInvoiceDetail(invData.invoice.id);
+    currentInvoiceId=inv.id;
+    buildPreview(inv);
+    goPage('preview');
+    document.getElementById('btn-confirm').style.display='';
+    document.getElementById('btn-print').style.display='none';
+    document.getElementById('btn-email').style.display='none';
+    document.getElementById('btn-pay').style.display='none';
+  }catch(err){
+    alert('❌ '+err.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='บันทึก Draft';}
+  }
+}
+
+// ─── PREVIEW ───
+async function viewInvoice(id){
+  let inv;
+  try{
+    inv=await loadInvoiceDetail(id);
+  }catch(err){
+    alert('❌ '+err.message);return;
+  }
+  currentInvoiceId=id;
+  buildPreview(inv);
+  const today=new Date().toISOString().split('T')[0];
+  const s=getStatus(inv,today);
+  document.getElementById('btn-confirm').style.display=s==='draft'?'':'none';
+  document.getElementById('btn-print').style.display=s!=='draft'?'':'none';
+  document.getElementById('btn-email').style.display=s!=='draft'?'':'none';
+  document.getElementById('btn-pay').style.display=(s==='pending'||s==='overdue')?'':'none';
+  goPage('preview');
+}
+function buildPreview(inv){
+  document.getElementById('pv-no').textContent=inv.invoiceNo;
+  document.getElementById('pv-date').textContent=fmtDate(inv.date);
+  document.getElementById('pv-due').textContent=fmtDate(inv.dueDate);
+  document.getElementById('pv-credit').textContent=(inv.creditTerm||0)+' วัน';
+  document.getElementById('pv-cust-name').textContent=inv.custName||'—';
+  document.getElementById('pv-cust-addr').innerHTML=
+    [inv.custAddr1,inv.custAddr2,inv.custAddr3,inv.custTaxId?'Tax ID: '+inv.custTaxId:''].filter(Boolean).join('<br>');
+  document.getElementById('pv-due-hero').textContent=fmt(inv.total)+' due '+fmtDate(inv.dueDate);
+  document.getElementById('pv-sub').textContent=fmt(inv.subtotal);
+  document.getElementById('pv-vat').textContent=fmt(inv.vatAmount);
+  document.getElementById('pv-total').textContent=fmt(inv.total);
+  document.getElementById('pv-wht-note').textContent=inv.whtAmount>0?'หัก ณ ที่จ่าย 3%: -'+fmt(inv.whtAmount)+' | สุทธิ '+fmt(inv.netAmount):'';
+  document.getElementById('pv-items').innerHTML=(inv.items||[]).map(it=>`
+    <div class="item-row">
+      <div><div class="item-desc">${it.desc||'—'}</div><div class="item-sub">VAT ${it.vat||0}%${it.wht?' · หัก ณ ที่จ่าย '+it.wht+'%':''}</div></div>
+      <span>${it.qty||1}</span>
+      <span>${fmt(it.amount||0)}</span>
+      <span style="color:var(--gray-800);font-weight:600">${fmt((it.amount||0)*(it.qty||1))}</span>
+    </div>`).join('');
+}
+
+function previewInvoice(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){alert('กรุณากรอกชื่อลูกค้า');return}
+  let sub=0,vat=0,wht=0;
+  lineItems.forEach(it=>{const base=(it.amount||0)*(it.qty||1);sub+=base;vat+=base*(it.vat||0)/100;wht+=base*(it.wht||0)/100;});
+  const credit=parseInt(document.getElementById('credit-term').value||0);
+  const dueDate=new Date();dueDate.setDate(dueDate.getDate()+credit);
+  const inv={
+    invoiceNo:'(Draft — ยังไม่บันทึก)',date:new Date().toISOString().split('T')[0],
+    dueDate:dueDate.toISOString().split('T')[0],creditTerm:credit,
+    custName:name,
+    custAddr1:document.getElementById('f-addr1').value,
+    custAddr2:document.getElementById('f-addr2').value,
+    custAddr3:document.getElementById('f-addr3').value,
+    custTaxId:document.getElementById('f-taxid').value,
+    items:JSON.parse(JSON.stringify(lineItems)),
+    subtotal:sub,vatAmount:vat,total:sub+vat,whtAmount:wht,netAmount:sub+vat-wht,
+    status:'draft'
+  };
+  buildPreview(inv);
+  document.getElementById('btn-confirm').style.display='none';
+  document.getElementById('btn-print').style.display='none';
+  document.getElementById('btn-email').style.display='none';
+  document.getElementById('btn-pay').style.display='none';
+  goPage('preview');
+}
+
+async function confirmInvoice(){
+  const inv=invoices.find(i=>i.id===currentInvoiceId);
+  if(!inv)return;
+  try{
+    const res=await fetch('/api/invoices/'+inv.id,{
+      method:'PATCH',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({status:'pending'}),
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'อัปเดตสถานะไม่สำเร็จ');
+    await refreshAll();
+    document.getElementById('btn-confirm').style.display='none';
+    document.getElementById('btn-print').style.display='';
+    document.getElementById('btn-email').style.display='';
+    document.getElementById('btn-pay').style.display='';
+    alert('✅ ยืนยัน Invoice แล้ว — สถานะ: รอชำระเงิน');
+  }catch(err){
+    alert('❌ '+err.message);
+  }
+}
+
+// ─── PAYMENT ───
+function openPayModal(){
+  const inv=invoices.find(i=>i.id===currentInvoiceId);if(!inv)return;
+  document.getElementById('pm-inv-no').textContent=inv.invoiceNo;
+  document.getElementById('pm-cust').textContent=inv.custName;
+  document.getElementById('pm-total').textContent=fmt(inv.total);
+  document.getElementById('pm-amount').value=inv.total;
+  document.getElementById('pm-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('pay-modal').classList.add('open');
+}
+function closePayModal(){document.getElementById('pay-modal').classList.remove('open')}
+async function confirmPay(){
+  const inv=invoices.find(i=>i.id===currentInvoiceId);
+  if(!inv)return;
+  try{
+    const res=await fetch('/api/payments',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        invoiceId:inv.id,
+        paidDate:document.getElementById('pm-date').value,
+        amount:parseFloat(document.getElementById('pm-amount').value||0),
+        paymentMethod:'transfer',
+      }),
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'บันทึกการชำระเงินไม่สำเร็จ');
+    closePayModal();
+    document.getElementById('btn-pay').style.display='none';
+    alert('✅ บันทึกการชำระเงินแล้ว — สถานะ: ชำระแล้ว');
+    await refreshAll();
+  }catch(err){
+    alert('❌ '+err.message);
+  }
+}
+
+// ─── EMAIL MODAL ───
+async function openEmailModal(){
+  const email=prompt('กรุณากรอกอีเมลผู้รับ:','');
+  if(!email) return;
+  const inv=invoices.find(i=>i.id===currentInvoiceId);
+  if(!inv){alert('ไม่พบ Invoice');return;}
+  const btn=document.getElementById('btn-email');
+  const originalLabel=btn.textContent;
+  btn.disabled=true;btn.textContent='กำลังส่ง...';
+  try{
+    await sendInvoiceEmail({
+      to: email,
+      subject: `ใบแจ้งหนี้ ${inv.invoiceNo} — Touris Us`,
+      html: `<p>เรียน ${inv.custName}</p><p>แนบใบแจ้งหนี้เลขที่ <strong>${inv.invoiceNo}</strong> ยอดสุทธิ ${fmt(inv.netAmount)} บาท</p><p>ขอบคุณที่ใช้บริการครับ/ค่ะ<br>ห้างหุ้นส่วนจำกัด ทัวริส อัส</p>`,
+    });
+    alert('📧 ส่งอีเมลไปยัง '+email+' สำเร็จแล้ว');
+  }catch(err){
+    alert('❌ ส่งอีเมลไม่สำเร็จ: '+err.message+'\n\nเช็ค: ตั้งค่า RESEND_API_KEY / RESEND_FROM_EMAIL ใน Vercel แล้วหรือยัง? verify domain ที่ resend.com/domains แล้วหรือยัง?');
+  }finally{
+    btn.disabled=false;btn.textContent=originalLabel;
+  }
+}
+
+// ─── CUSTOMERS ───
+let custFilter='';
+function filterCusts(q){custFilter=q;renderCustomers()}
+function renderCustomers(){
+  const q=(custFilter||'').toLowerCase();
+  const list=q?customers.filter(c=>c.name.toLowerCase().includes(q)||(c.taxid||'').includes(q)||(c.code||'').toLowerCase().includes(q)):customers;
+  document.getElementById('tbl-custs').innerHTML=list.map(c=>`
+    <tr>
+      <td><span style="font-size:11px;font-weight:700;color:var(--blue)">${c.code||'—'}</span></td>
+      <td style="font-weight:600">${c.name}</td>
+      <td style="font-family:monospace;font-size:12px">${c.taxid||'—'}</td>
+      <td style="font-size:12px;color:var(--gray-400)">${[c.addr1,c.addr2,c.addr3].filter(Boolean).join(', ')}</td>
+      <td>${c.credit||0} วัน</td>
+      <td>
+        <button class="btn btn-xs" onclick="editCust('${c.id}')">แก้ไข</button>
+        <button class="btn btn-xs btn-primary" onclick="newInvFromCust('${c.id}')">Invoice</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:20px">ไม่พบลูกค้า</td></tr>';
+}
+function openAddCust(){document.getElementById('add-cust-modal').classList.add('open')}
+function closeAddCust(){document.getElementById('add-cust-modal').classList.remove('open')}
+async function saveCust(){
+  const name=document.getElementById('nc-name').value.trim();
+  if(!name){alert('กรุณากรอกชื่อ');return}
+  try{
+    const res=await fetch('/api/customers',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        code:document.getElementById('nc-code').value.trim(),
+        type:document.getElementById('nc-type').value,
+        name_th:name,
+        address1:document.getElementById('nc-addr1').value,
+        address2:document.getElementById('nc-addr2').value,
+        address3:document.getElementById('nc-addr3').value,
+        tax_id:document.getElementById('nc-taxid').value,
+        credit_term_days:parseInt(document.getElementById('nc-credit').value||0),
+      }),
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||'บันทึกลูกค้าไม่สำเร็จ');
+    await loadCustomers();
+    closeAddCust();
+    renderCustomers();
+  }catch(err){
+    alert('❌ '+err.message);
+  }
+}
+function editCust(id){alert('Edit customer: '+id+'\n(ใน production: เปิด edit modal)')}
+function newInvFromCust(id){fillCust(id);goPage('new-invoice')}
+
+// ─── MODAL BACKDROP CLOSE ───
+document.getElementById('pay-modal').addEventListener('click',function(e){if(e.target===this)closePayModal()});
+document.getElementById('add-cust-modal').addEventListener('click',function(e){if(e.target===this)closeAddCust()});
+
+// ─── INIT ───
+refreshAll();
+initForm();
+</script>
+<script src="/send-invoice-email.js"></script>
+</body>
+</html>
