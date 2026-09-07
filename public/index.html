@@ -165,7 +165,8 @@ body{font-family:'Sarabun',system-ui,sans-serif;background:#EEF2F7;color:var(--g
   body{background:#fff}
   .inv-preview{border:none;border-radius:0;max-width:100%}
   .inv-topbar{print-color-adjust:exact;-webkit-print-color-adjust:exact}
-  .page{display:block!important}
+  .page:not(.active){display:none!important}
+  .page.active{display:block!important}
   .app{display:block}
 }
 </style>
