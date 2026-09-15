@@ -8,9 +8,13 @@
 tourisus-invoice/
 ├── api/
 │   ├── customers.js              # GET (list/search) + POST (create)
-│   ├── invoices.js                # GET (dashboard list) + POST (create + items)
+│   ├── invoices.js                # GET (dashboard list, embeds receipts) + POST (create + items)
 │   ├── invoices/[id].js           # GET (full detail) + PATCH (update status)
 │   ├── payments.js                # POST (record payment)
+│   ├── receipts.js                # GET (list) + POST (issue a receipt against a paid invoice) — Phase 4
+│   ├── vendors.js                 # GET (list/search) + POST (create) — Phase 4, for Purchase VAT entries
+│   ├── purchase-vat.js            # GET (list) + POST (record a vendor purchase / input VAT) — Phase 4
+│   ├── vat-summary.js             # GET monthly output vs input VAT (v_vat_filing_summary view) — Phase 4
 │   └── send-invoice-email.js      # POST — ส่งอีเมลผ่าน Resend
 ├── lib/
 │   └── supabaseAdmin.js           # server-only Supabase client (service_role)
@@ -54,6 +58,16 @@ tourisus-invoice/
 - **vat_amount/total_amount ไม่ใช่ generated column แล้ว** (แก้ 15 ก.ย. 69) — API (`POST /api/invoices`) คำนวณจาก invoice_items แต่ละบรรทัดเอง เพราะ header เดียวใช้ vat_rate อัตราเดียวไม่พอสำหรับใบตั๋วเครื่องบินที่มีทั้ง 0% และ 7% ในใบเดียวกัน
 - Database รองรับ field ละเอียดกว่านี้อีก (`airline`, `flight_no`, `check_in`, `policy_no` ฯลฯ) — API รับไว้แล้ว แค่ยังไม่มี UI ป้อนข้อมูลระดับนั้น
 - **หัก ณ ที่จ่าย (WHT)**: ยังไม่มี column ใน schema จริง — ปิดไว้ก่อน (แสดง 0) ต้องเพิ่ม column ทีหลังถ้าต้องใช้งานจริง
+
+## Phase 4 (15 ก.ย. 69) — Receipts / Purchase VAT / VAT Filing Summary
+
+เพิ่ม 3 แท็บใหม่ในแดชบอร์ด ต่อกับ 3 ตารางที่สร้างไว้ตั้งแต่ Phase 3 (`receipts`, `vendors` + `purchase_vat_entries`, และ view `v_vat_filing_summary`):
+
+- **🧾 ใบเสร็จ**: แสดง Invoice ที่ `status='paid'` แต่ยังไม่มี receipt ผูกอยู่ (`invoices.receipts` embed ใน `GET /api/invoices`) → กด "ออกใบเสร็จ" เพื่อสร้างแถวใน `receipts` (เลขที่ออกอัตโนมัติจาก `generate_receipt_no()`) พร้อมประวัติใบเสร็จที่ออกแล้วทั้งหมด
+- **🧮 VAT ซื้อ**: บันทึกรายการซื้อจาก vendor (สำหรับ input VAT) — ค้นหา/เพิ่ม vendor แบบเดียวกับลูกค้าใน invoice form, คำนวณ VAT 7% อัตโนมัติจากยอดซื้อ (แก้ไขเองได้)
+- **📊 สรุป VAT**: อ่านจาก view `v_vat_filing_summary` (group by เดือน: output VAT จาก invoices ที่ไม่ cancelled, input VAT จาก purchase_vat_entries) แสดงยอดสุทธิ + สถานะ "ต้องนำส่ง"/"ขอคืนได้" ต่อเดือน — ยังเป็น read-only (ยังไม่ผูกกับ `vat_filing_periods` สำหรับ mark ว่ายื่นแล้ว)
+
+ยังไม่ได้ทำ (ทำทีหลังได้): เอกสาร `tax_invoices` (ใบกำกับภาษี Original/Copy สำหรับใบเสร็จ), `credit_notes`, `ticket_refunds`, `wht_certificates` — ตารางพร้อมใน DB แล้วแต่ยังไม่มี API/UI
 
 ## Option B (ทำทีหลังได้ ไม่ต้องแก้ DB/API)
 

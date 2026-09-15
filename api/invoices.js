@@ -18,7 +18,8 @@ export default async function handler(req, res) {
         subtotal, service_fee, vat_rate, vat_amount, total_amount,
         paid_date, paid_amount, payment_method, note,
         customers ( id, name_th, tax_id ),
-        invoice_items ( service_type )
+        invoice_items ( service_type ),
+        receipts ( id )
       `)
       .order('created_at', { ascending: false });
 
