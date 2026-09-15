@@ -355,7 +355,7 @@ body{font-family:'Sarabun',system-ui,sans-serif;background:#EEF2F7;color:var(--g
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closePayModal()">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="confirmPay()">✅ ยืนยันชำระแล้ว</button>
+      <button class="btn btn-primary" id="btn-confirm-pay" onclick="confirmPay()">✅ ยืนยันชำระแล้ว</button>
     </div>
   </div>
 </div>
@@ -393,7 +393,7 @@ body{font-family:'Sarabun',system-ui,sans-serif;background:#EEF2F7;color:var(--g
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeReceiptModal()">ยกเลิก</button>
-      <button class="btn btn-primary" onclick="confirmReceipt()">✅ ออกใบเสร็จ</button>
+      <button class="btn btn-primary" id="btn-confirm-receipt" onclick="confirmReceipt()">✅ ออกใบเสร็จ</button>
     </div>
   </div>
 </div>
@@ -457,6 +457,19 @@ let selectedCustomerId = null; // set by fillCust(); cleared if the name is hand
 let selectedVendorId = null;   // set by fillVendor() in the Purchase VAT modal; cleared if the name is hand-edited afterward
 
 function round2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
+
+// Prevents double-submit (double-click / slow network + impatient re-click) on
+// money-moving actions — confirmInvoice/confirmPay/confirmReceipt each create a
+// row via POST/PATCH with no idempotency key, so two overlapping clicks used to
+// create duplicate payment/receipt records. Disables the button for the
+// duration of the async call and re-enables it in `finally`, whatever happens.
+async function withButtonLock(btnId, fn){
+  const btn = document.getElementById(btnId);
+  if(btn && btn.disabled) return; // already in flight — ignore the extra click
+  if(btn) btn.disabled = true;
+  try{ await fn(); }
+  finally{ if(btn) btn.disabled = false; }
+}
 
 function mapApiCustomer(c){
   return { id:c.id, code:c.code, type:c.type, name:c.name_th,
@@ -867,14 +880,16 @@ function doPrint(mode){
 }
 
 async function confirmInvoice(){
-  try{
-    const res=await fetch('/api/invoices/'+currentInvId,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'pending'})});
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.error||'ยืนยัน Invoice ไม่สำเร็จ');
-    const inv=await loadInvoiceDetail(currentInvId);
-    showPreview(inv,'pending');
-    alert('✅ ยืนยัน Invoice: '+inv.no+' — สถานะ: รอชำระเงิน');
-  }catch(err){ alert('❌ '+err.message); }
+  await withButtonLock('btn-confirm', async ()=>{
+    try{
+      const res=await fetch('/api/invoices/'+currentInvId,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:'pending'})});
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.error||'ยืนยัน Invoice ไม่สำเร็จ');
+      const inv=await loadInvoiceDetail(currentInvId);
+      showPreview(inv,'pending');
+      alert('✅ ยืนยัน Invoice: '+inv.no+' — สถานะ: รอชำระเงิน');
+    }catch(err){ alert('❌ '+err.message); }
+  });
 }
 
 function openPayModal(){
@@ -888,23 +903,25 @@ function openPayModal(){
 }
 function closePayModal(){document.getElementById('pay-modal').classList.remove('open')}
 async function confirmPay(){
-  const payload={ invoiceId:currentInvId,
-    paidDate:document.getElementById('pm-date').value,
-    amount:parseFloat(document.getElementById('pm-amount').value)||0,
-    paymentMethod:document.getElementById('pm-method').value,
-    referenceNo:document.getElementById('pm-ref').value||null,
-    note:document.getElementById('pm-note').value||null };
-  try{
-    const res=await fetch('/api/payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const data=await res.json();
-    if(!res.ok) throw new Error(data.error||'บันทึกชำระไม่สำเร็จ');
-    closePayModal();
-    const full=await loadInvoiceDetail(currentInvId);
-    showPreview(full,'paid');
-    await loadInvoices();
-    renderDash();
-    alert('✅ บันทึกชำระแล้ว');
-  }catch(err){ alert('❌ '+err.message); }
+  await withButtonLock('btn-confirm-pay', async ()=>{
+    const payload={ invoiceId:currentInvId,
+      paidDate:document.getElementById('pm-date').value,
+      amount:parseFloat(document.getElementById('pm-amount').value)||0,
+      paymentMethod:document.getElementById('pm-method').value,
+      referenceNo:document.getElementById('pm-ref').value||null,
+      note:document.getElementById('pm-note').value||null };
+    try{
+      const res=await fetch('/api/payments',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.error||'บันทึกชำระไม่สำเร็จ');
+      closePayModal();
+      const full=await loadInvoiceDetail(currentInvId);
+      showPreview(full,'paid');
+      await loadInvoices();
+      renderDash();
+      alert('✅ บันทึกชำระแล้ว');
+    }catch(err){ alert('❌ '+err.message); }
+  });
 }
 
 function sendEmail(){
@@ -969,20 +986,22 @@ function openReceiptModal(invId){
 }
 function closeReceiptModal(){document.getElementById('receipt-modal').classList.remove('open')}
 async function confirmReceipt(){
-  const payload = { invoiceId: currentReceiptInvId,
-    receiptDate: document.getElementById('rc-date').value,
-    amount: parseFloat(document.getElementById('rc-amount').value)||0,
-    paymentMethod: document.getElementById('rc-method').value,
-    note: document.getElementById('rc-note').value||null };
-  try{
-    const res = await fetch('/api/receipts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const data = await res.json();
-    if(!res.ok) throw new Error(data.error||'ออกใบเสร็จไม่สำเร็จ');
-    closeReceiptModal();
-    await Promise.all([loadInvoices(), loadReceipts()]);
-    renderReceipts();
-    alert('✅ ออกใบเสร็จแล้ว: '+data.receipt.receipt_no);
-  }catch(err){ alert('❌ '+err.message); }
+  await withButtonLock('btn-confirm-receipt', async ()=>{
+    const payload = { invoiceId: currentReceiptInvId,
+      receiptDate: document.getElementById('rc-date').value,
+      amount: parseFloat(document.getElementById('rc-amount').value)||0,
+      paymentMethod: document.getElementById('rc-method').value,
+      note: document.getElementById('rc-note').value||null };
+    try{
+      const res = await fetch('/api/receipts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error||'ออกใบเสร็จไม่สำเร็จ');
+      closeReceiptModal();
+      await Promise.all([loadInvoices(), loadReceipts()]);
+      renderReceipts();
+      alert('✅ ออกใบเสร็จแล้ว: '+data.receipt.receipt_no);
+    }catch(err){ alert('❌ '+err.message); }
+  });
 }
 
 // ── Purchase VAT (VAT ซื้อ) ─────────────────────────────────────
