@@ -16,7 +16,10 @@ tourisus-invoice/
 │   └── supabaseAdmin.js           # server-only Supabase client (service_role)
 ├── public/
 │   ├── index.html                 # Invoice System จริง — ต่อ API ครบแล้ว (ไม่ใช้ localStorage อีก)
-│   └── send-invoice-email.js      # client helper สำหรับปุ่ม "ส่งอีเมล"
+│   │                                 ⚠️ 15 ก.ย. 69: คอมมิต "Update index.html" เคยเขียนทับเป็น
+│   │                                 localStorage-only prototype โดยไม่ตั้งใจ (ไม่ต่อ Supabase เลย) —
+│   │                                 Cowork กู้กลับมาแล้ว โดยคง UI ตั๋วเครื่องบิน (svc-grid/X-A-B-C) ที่ถูกต้องไว้
+│   └── send-invoice-email.js      # client helper สำหรับปุ่ม "ส่งอีเมล" (ยังไม่ได้ผูกเข้าใช้งานจริง — รอ verify domain)
 ├── database/
 │   ├── touris_us_supabase_schema.sql
 │   └── legacy-apps-script-reference.gs   # ของเดิม เก็บไว้อ้างอิงเฉยๆ (ไม่ได้ใช้แล้ว)
@@ -43,10 +46,13 @@ tourisus-invoice/
    - `RESEND_FROM_EMAIL` = `"Touris Us <invoice@yourdomain.com>"` (ต้อง verify domain ที่ resend.com/domains ก่อน)
 5. **Deploy production**: `vercel --prod`
 
-## ขอบเขตปัจจุบัน (Option A — เชื่อมต่อแบบง่าย)
+## ขอบเขตปัจจุบัน (15 ก.ย. 69)
 
-- รายการสินค้า/บริการ: ใช้แค่ **description + ราคา + จำนวน + VAT** — ยังไม่มีฟอร์มแยกตาม service type (เที่ยวบิน/โรงแรม/ประกัน)
-- Database รองรับ field ละเอียดครบแล้ว (`airline`, `flight_no`, `check_in`, `policy_no` ฯลฯ) — API ก็รับไว้แล้ว แค่ยังไม่มี UI ป้อนข้อมูล
+- UI เลือกประเภทบริการ (svc-grid): ✈️ ตั๋วเครื่องบิน · 🏨 โรงแรม · 🛡️ ประกันภัย · 📋 วีซ่า · 🎒 ทัวร์ · 🔧 อื่นๆ
+- ✈️ ตั๋วเครื่องบิน: กรอก X (ราคาตั๋ว, VAT 0%) + A (ค่าบริการรวม VAT) → ระบบสร้าง 2 invoice_items (ticket @0%, service_fee @7%) และคำนวณ Original/Copy ให้อัตโนมัติ
+- อื่นๆ: กรอก A (ราคาขายรวม VAT 7%) อย่างเดียว → 1 invoice_item @7%
+- **vat_amount/total_amount ไม่ใช่ generated column แล้ว** (แก้ 15 ก.ย. 69) — API (`POST /api/invoices`) คำนวณจาก invoice_items แต่ละบรรทัดเอง เพราะ header เดียวใช้ vat_rate อัตราเดียวไม่พอสำหรับใบตั๋วเครื่องบินที่มีทั้ง 0% และ 7% ในใบเดียวกัน
+- Database รองรับ field ละเอียดกว่านี้อีก (`airline`, `flight_no`, `check_in`, `policy_no` ฯลฯ) — API รับไว้แล้ว แค่ยังไม่มี UI ป้อนข้อมูลระดับนั้น
 - **หัก ณ ที่จ่าย (WHT)**: ยังไม่มี column ใน schema จริง — ปิดไว้ก่อน (แสดง 0) ต้องเพิ่ม column ทีหลังถ้าต้องใช้งานจริง
 
 ## Option B (ทำทีหลังได้ ไม่ต้องแก้ DB/API)
